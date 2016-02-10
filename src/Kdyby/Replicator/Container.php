@@ -13,8 +13,7 @@ namespace Kdyby\Replicator;
 use Nette;
 use Nette\Forms\SubmitButton;
 use Nette\Forms\FormContainer;
-
-
+use Nette\Web\Html;
 
 /**
  * @author Martin Takáč <martin@takac.name>
@@ -25,7 +24,7 @@ use Nette\Forms\FormContainer;
  * @method \Nette\Forms\FormContainer getParent()
  * @property \Nette\Forms\FormContainer $parent
  */
-class Container extends FormContainer
+class Container extends FormContainer implements Nette\Forms\IFormControl
 {
 
 	/** @var bool */
@@ -52,6 +51,17 @@ class Container extends FormContainer
 	/** @var array */
 	private $httpPost;
 
+	/** @var Nette\Web\Html  control element template */
+	private $control;
+
+	/** @var Nette\ITranslator */
+	private $translator = TRUE; // means autodetect
+
+	/** @var array user options */
+	private $options = array();
+
+	/** @var Rules */
+	private $rules;
 
 
 	/**
@@ -77,6 +87,9 @@ class Container extends FormContainer
 
 		$this->createDefault = (int)$createDefault;
 		$this->forceDefault = $forceDefault;
+
+		$this->control = Html::el('');
+		$this->rules = new Nette\Forms\Rules($this);
 	}
 
 
@@ -128,6 +141,153 @@ class Container extends FormContainer
 	public function getButtons($recursive = FALSE)
 	{
 		return $this->getComponents($recursive, 'Nette\Forms\ISubmitterControl');
+	}
+
+
+
+	// -- implementst IFormControl --
+
+
+
+	/**
+	 * Returns control's HTML element template.
+	 * @return Nette\Web\Html
+	 */
+	final public function getControlPrototype()
+	{
+		return $this->control;
+	}
+
+
+
+	/**
+	 * Generates control's HTML element.
+	 * @return Nette\Web\Html
+	 */
+	public function getControl()
+	{
+		$this->setOption('rendered', TRUE);
+		$control = clone $this->control;
+		return $control;
+	}
+
+
+
+	/**
+	 * Generates label's HTML element.
+	 * @param  string
+	 * @return NULL
+	 */
+	public function getLabel($caption = NULL)
+	{
+		return null;
+	}
+
+
+
+	/**
+	 * Returns control's value.
+	 * @return list of struct
+	 */
+	function getValue()
+	{
+		$values = array();
+		foreach ($this->getContainers() as $row) {
+			$values[] = $row->getValues();
+		}
+		return $values;
+	}
+
+
+
+	/**
+	 * Sets control's value.
+	 * @param  mixed
+	 * @return void
+	 */
+	function setValue($value)
+	{
+		$this->setValues($value);
+		return $this;
+	}
+
+
+
+	/**
+	 * @return Rules
+	 */
+	final public function getRules()
+	{
+		return $this->rules;
+	}
+
+
+
+	/**
+	 * Returns errors corresponding to control.
+	 * @return array
+	 */
+	function getErrors()
+	{
+		return [];
+	}
+
+
+
+	/**
+	 * Returns user-specific options.
+	 * @return array
+	 */
+	final public function getOption($key, $default = NULL)
+	{
+		return isset($this->options[$key]) ? $this->options[$key] : $default;
+	}
+
+
+
+	/**
+	 * Sets user-specific option.
+	 * Common options:
+	 * - 'rendered' - indicate if method getControl() have been called
+	 * - 'required' - indicate if ':required' rule has been applied
+	 * - 'description' - textual or Html object description (recognized by ConventionalRenderer)
+	 * @param  string key
+	 * @param  mixed  value
+	 * @return FormControl  provides a fluent interface
+	 */
+	public function setOption($key, $value)
+	{
+		if ($value === NULL) {
+			unset($this->options[$key]);
+
+		} else {
+			$this->options[$key] = $value;
+		}
+		return $this;
+	}
+
+
+
+	/**
+	 * Is control disabled?
+	 * @return bool
+	 */
+	function isDisabled()
+	{
+		return FALSE;
+	}
+
+
+
+	/**
+	 * Returns translated string.
+	 * @param  string
+	 * @param  int      plural count
+	 * @return string
+	 */
+	public function translate($s, $count = NULL)
+	{
+		return $s;
 	}
 
 
@@ -246,7 +406,7 @@ class Container extends FormContainer
 	 * Loads data received from POST
 	 * @internal
 	 */
-	protected function loadHttpData()
+	/*protected*/ function loadHttpData()
 	{
 		if (!$this->getForm()->isSubmitted()) {
 			return;
