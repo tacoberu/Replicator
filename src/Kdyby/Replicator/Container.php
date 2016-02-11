@@ -590,7 +590,10 @@ class Container extends FormContainer implements Nette\Forms\IFormControl
 				}
 				return strlen($value);
 			};
-			$rows[] = array_filter(array_diff_key($item, $subComponents), $filter) ?: FALSE;
+
+			if (is_array($item)) {
+				$rows[] = array_filter(array_diff_key($item, $subComponents), $filter) ?: FALSE;
+			}
 		}
 
 		return count(array_filter($rows));
